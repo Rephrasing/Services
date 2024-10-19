@@ -35,7 +35,7 @@ public class ClientSocketService extends Service {
     }
 
     public void sendMessage(JsonElement message) {
-        if (socket == null) {
+        if (!isConnected()) {
             throw new IllegalArgumentException("cannot send a message without on an inactive service");
         }
         executor.execute(()->{
@@ -68,10 +68,15 @@ public class ClientSocketService extends Service {
 
     @Override
     protected void stop() {
+        if (!isConnected()) return;
         try {
             this.socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isConnected() {
+        return this.socket != null;
     }
 }

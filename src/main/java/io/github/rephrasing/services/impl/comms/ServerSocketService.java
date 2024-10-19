@@ -39,6 +39,7 @@ public class ServerSocketService extends Service {
     }
 
     public void sendMessage(JsonElement message) {
+        if (!isConnected()) throw new IllegalArgumentException("Cannot send a message to a null client (Have not been connected by a client yet)");
         executor.execute(()->{
             try {
                 DataOutputStream out = new DataOutputStream(connection.getOutputStream());
@@ -69,6 +70,7 @@ public class ServerSocketService extends Service {
 
     @Override
     protected void stop() {
+        if (!isConnected()) return;
         if (!socket.isBound()) {
             return;
         }
@@ -82,6 +84,10 @@ public class ServerSocketService extends Service {
             }
             getLogger().info("Disconnected");
         });
+    }
+
+    public boolean isConnected() {
+        return this.socket != null;
     }
 
     public ExecutorService getExecutor() {
