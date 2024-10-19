@@ -1,5 +1,7 @@
 package io.github.rephrasing.services.impl.comms;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import io.github.rephrasing.services.api.Service;
 import io.github.rephrasing.services.api.ServiceInfo;
 
@@ -17,15 +19,17 @@ import java.util.function.Consumer;
 public class ServerSocketService extends Service {
 
     private final int port;
-    private final Consumer<String> listenerFunction;
+    private final Consumer<JsonElement> listenerFunction;
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final Gson gson;
 
     private ServerSocket socket;
     private Socket connection;
 
-    public ServerSocketService(int port, Integer setSoTimeOut, TimeUnit timeoutTimeUnit, Consumer<String> listenerFunction) {
+    public ServerSocketService(int port, Integer setSoTimeOut, TimeUnit timeoutTimeUnit, Gson gson, Consumer<JsonElement> listenerFunction) {
         this.port = port;
         this.listenerFunction = listenerFunction;
+        this.gson = gson;
         try {
             this.socket = new ServerSocket(port, 50);
             this.socket.setSoTimeout((int) timeoutTimeUnit.toMillis(setSoTimeOut));
@@ -34,11 +38,11 @@ public class ServerSocketService extends Service {
         }
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(JsonElement message) {
         executor.execute(()->{
             try {
                 DataOutputStream out = new DataOutputStream(connection.getOutputStream());
-                out.writeUTF(message);
+                out.writeUTF(gson.toJson(message));
                 out.flush();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -56,7 +60,7 @@ public class ServerSocketService extends Service {
             while (!connection.isClosed()) {
                 String cmd = in.readUTF();
                 if (cmd.isEmpty()) continue;
-                this.listenerFunction.accept(cmd);
+                this.listenerFunction.accept(gson.fromJson(cmd, JsonElement.class));
             }
         } catch (Exception e) {
             e.printStackTrace();

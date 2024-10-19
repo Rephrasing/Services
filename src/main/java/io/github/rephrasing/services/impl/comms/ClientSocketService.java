@@ -1,5 +1,7 @@
 package io.github.rephrasing.services.impl.comms;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import io.github.rephrasing.services.api.Service;
 import io.github.rephrasing.services.api.ServiceInfo;
 
@@ -17,27 +19,29 @@ public class ClientSocketService extends Service {
 
     private final String address;
     private final int port;
-    private final Consumer<String> listenerFunction;
+    private final Consumer<JsonElement> listenerFunction;
     private final int soTimeoutMillis;
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final Gson gson;
 
     private Socket socket;
 
-    public ClientSocketService(String address, int port, int soTimeOut, TimeUnit timeoutTimeUnit, Consumer<String> listenerFunction) {
+    public ClientSocketService(String address, int port, int soTimeOut, TimeUnit timeoutTimeUnit, Gson gson, Consumer<JsonElement> listenerFunction) {
         this.address = address;
         this.port = port;
         this.listenerFunction = listenerFunction;
+        this.gson = gson;
         this.soTimeoutMillis = (int)timeoutTimeUnit.toMillis(soTimeOut);
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(JsonElement message) {
         if (socket == null) {
             throw new IllegalArgumentException("cannot send a message without on an inactive service");
         }
         executor.execute(()->{
             try {
                 DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                out.writeUTF(message);
+                out.writeUTF(this.gson.toJson(message));
                 out.flush();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -55,7 +59,7 @@ public class ClientSocketService extends Service {
             while (!socket.isClosed()) {
                 String cmd = in.readUTF();
                 if (cmd.isEmpty()) continue;
-                this.listenerFunction.accept(cmd);
+                this.listenerFunction.accept(this.gson.fromJson(cmd, JsonElement.class));
             }
         } catch (IOException e) {
             e.printStackTrace();
