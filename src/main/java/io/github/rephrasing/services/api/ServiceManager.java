@@ -7,7 +7,6 @@ import java.util.concurrent.Executors;
 public final class ServiceManager {
 
     private static final LinkedHashMap<Class<? extends Service>, Service> registeredServicesMap = new LinkedHashMap<>();
-    private static final LinkedHashMap<Class<? extends Service>, Service> runningServicesMap = new LinkedHashMap<>();
     private static final List<Service> waitingServices = new ArrayList<>();
     private static final ExecutorService asyncService = Executors.newCachedThreadPool();
 
@@ -16,12 +15,15 @@ public final class ServiceManager {
             throw new IllegalStateException("Cannot initialize services, missing dependencies " + waitingServices + "\n" + waitingServices.stream().map(c -> c.getClass().getName() + ": " + Arrays.toString(c.getDependencies()) + "\n"));
         }
         for (Service service : registeredServicesMap.values()) {
+            if (service.running) {
+                throw new IllegalArgumentException("Cannot start a service [" + service.getClass().getName() + "] twice");
+            }
+            service.running = true;
             if (service.isAsynchronous()) {
                 asyncService.execute(service::start);
                 continue;
             }
             service.start();
-            runningServicesMap.put(service.getClass(), service);
         }
     }
 
@@ -30,18 +32,28 @@ public final class ServiceManager {
         if (service == null) {
             throw new IllegalArgumentException("Service of type [" + clazz.getName() + "] does not exist or has not been registered");
         }
+        if (service.running) {
+            throw new IllegalArgumentException("Cannot stop inactive service [" + service.getClass().getName() + "]");
+        }
+        service.running = true;
+        if (service.isAsynchronous()) {
+            asyncService.execute(service::start);
+            return;
+        }
         service.start();
-        runningServicesMap.put(clazz, service);
     }
 
     public static void stopServices() {
         for (Service service : registeredServicesMap.values()) {
+            if (!service.running) {
+                throw new IllegalArgumentException("Cannot stop inactive service [" + service.getClass().getName() + "]");
+            }
+            service.running = false;
             if (service.isAsynchronous()) {
                 asyncService.execute(service::stop);
                 continue;
             }
             service.stop();
-            runningServicesMap.remove(service.getClass());
         }
     }
 
@@ -51,12 +63,15 @@ public final class ServiceManager {
         if (service == null) {
             throw new IllegalArgumentException("Service of type [" + clazz.getName() + "] does not exist or has not been registered");
         }
+        if (!service.running) {
+            throw new IllegalArgumentException("Cannot stop inactive service [" + service.getClass().getName() + "]");
+        }
+        service.running = false;
         if (service.isAsynchronous()) {
             asyncService.execute(service::stop);
             return;
         }
         service.stop();
-        runningServicesMap.remove(service.getClass());
     }
 
     public static void registerService(Service... services) {

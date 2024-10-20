@@ -8,6 +8,7 @@ import java.util.Optional;
 public abstract class Service {
 
     private final Logger logger;
+    protected boolean running = false;
 
     public Service() {
         ServiceInfo info = this.getClass().getAnnotation(ServiceInfo.class);
@@ -39,7 +40,17 @@ public abstract class Service {
     public boolean isDependency(Class<? extends Service> clazz) {
         ServiceInfo info = this.getClass().getAnnotation(ServiceInfo.class);
 
-        return info.dependsOn().length > 0 && info.dependsOn()[0] == clazz;
+        if (info.dependsOn().length < 1) {
+            return false;
+        }
+        for (Class<? extends Service> dependency : info.dependsOn()) {
+            if (dependency == clazz) return true;
+        }
+        return false;
+    }
+
+    public boolean isRunning() {
+        return running;
     }
 
     public Logger getLogger() {
