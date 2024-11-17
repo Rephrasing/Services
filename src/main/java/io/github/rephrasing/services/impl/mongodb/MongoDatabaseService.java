@@ -20,12 +20,10 @@ public final class MongoDatabaseService extends Service {
 
     public MongoDatabaseService(String connectionString) {
         this.connectionString = connectionString;
-        ServiceManager.registerService(this);
     }
     public MongoDatabaseService(String connectionString, CodecRegistry... registries) {
         this.connectionString = connectionString;
         this.registries = registries;
-        ServiceManager.registerService(this);
     }
 
     public MongoDatabase getDatabase(String databaseName) {

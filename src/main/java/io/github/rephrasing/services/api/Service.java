@@ -1,9 +1,8 @@
 package io.github.rephrasing.services.api;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
+import java.util.logging.Logger;
 
 public abstract class Service {
 
@@ -13,7 +12,7 @@ public abstract class Service {
     public Service() {
         ServiceInfo info = this.getClass().getAnnotation(ServiceInfo.class);
         if (info == null) throw new IllegalArgumentException("ServiceInfo annotation not found on " + this.getClass().getName());
-        this.logger = LogManager.getLogger(info.value());
+        this.logger = Logger.getLogger(info.value());
     }
 
     protected abstract void start();

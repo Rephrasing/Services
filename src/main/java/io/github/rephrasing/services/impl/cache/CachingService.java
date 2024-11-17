@@ -61,7 +61,7 @@ public class CachingService extends Service {
             T deserializedObject = adapter.deserialize(doc);
             getCacheList(type).add(deserializedObject);
         }
-        getLogger().info("Successfully pulled from database ({}, {})", adapter.getDatabaseName(), adapter.getCollectionName());
+        getLogger().info(String.format("Successfully pulled from database (%s, %s)", adapter.getDatabaseName(), adapter.getCollectionName()));
     }
 
     public <T> void pushToDatabase(Class<T> type, boolean replaceOldCollectionObjects) {
@@ -76,17 +76,17 @@ public class CachingService extends Service {
         }
         List<Document> serializedObjects = getCacheList(type).stream().map(adapter::serialize).toList();
         coll.insertMany(serializedObjects);
-        getLogger().info("Successfully pushed to database ({}, {})", adapter.getDatabaseName(), adapter.getCollectionName());
+        getLogger().info(String.format("Successfully pushed to database (%s, %s)", adapter.getDatabaseName(), adapter.getCollectionName()));
     }
 
     public <T> void registerAdapter(CacherAdapter<T> adapter) {
         if (findAdapterByType(adapter.getType()).isPresent()) {
-            getLogger().warn("CachingAdapter of type \"{}\" is already registered", adapter.getType().getName());
+            getLogger().warning(String.format("CachingAdapter of type \"%s\" is already registered", adapter.getType().getName()));
             return;
         }
         this.adapters.add(adapter);
         this.cache.put(adapter.getType(), new ArrayList<>());
-        getLogger().info("Registered CachingAdapter for type {}", adapter.getType().getName());
+        getLogger().info(String.format("Registered CachingAdapter for type %s", adapter.getType().getName()));
     }
 
     public <T> Optional<CacherAdapter<T>> findAdapterByType(Class<T> clazz) {

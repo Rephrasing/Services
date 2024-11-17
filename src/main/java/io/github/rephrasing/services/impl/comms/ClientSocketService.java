@@ -54,7 +54,7 @@ public class ClientSocketService extends Service {
         try {
             this.socket = new Socket(address, port);
             this.socket.setSoTimeout(soTimeoutMillis);
-            getLogger().info("Connected to server {}:{}", this.socket.getInetAddress().toString(), this.socket.getLocalPort());
+            getLogger().info(String.format("Connected to server %s:%d", this.socket.getInetAddress().toString(), this.socket.getLocalPort()));
             DataInputStream in = new DataInputStream(socket.getInputStream());
             while (!socket.isClosed()) {
                 String cmd = in.readUTF();

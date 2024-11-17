@@ -54,9 +54,9 @@ public class ServerSocketService extends Service {
     @Override
     protected void start() {
         try {
-            getLogger().info("Listening on port {}", this.port);
+            getLogger().info(String.format("Listening on port %d", this.port));
             this.connection = this.socket.accept();
-            getLogger().info("Connected by client {}:{}", this.socket.getInetAddress().toString(), this.socket.getLocalPort());
+            getLogger().info(String.format("Connected by client %s:%d", this.socket.getInetAddress().toString(), this.socket.getLocalPort()));
             DataInputStream in = new DataInputStream(connection.getInputStream());
             while (!connection.isClosed()) {
                 String cmd = in.readUTF();
