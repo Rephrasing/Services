@@ -8,7 +8,9 @@ import io.github.rephrasing.services.impl.mongodb.MongoDatabaseService;
 import org.bson.Document;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @ServiceInfo(value = "Caching-Service", dependsOn = MongoDatabaseService.class)
 public class CachingService extends Service {
@@ -33,6 +35,13 @@ public class CachingService extends Service {
 
     public <T> void cache(T object, Class<T> clazz) {
         getCacheList(clazz).add(object);
+    }
+    public <T> void execute(Class<T> clazz, Predicate<T> filter, Consumer<T> function) {
+        List<T> modified = getCacheList(clazz).stream().filter(filter).map(obj -> {
+            function.accept(obj);
+            return obj;
+        }).collect(Collectors.toList());
+        this.cache.put(clazz, modified);
     }
 
     public <T> boolean remove(Class<T> clazz, Predicate<T> filter) {
@@ -61,7 +70,8 @@ public class CachingService extends Service {
             T deserializedObject = adapter.deserialize(doc);
             getCacheList(type).add(deserializedObject);
         }
-        getLogger().info(String.format("Successfully pulled from database (%s, %s)", adapter.getDatabaseName(), adapter.getCollectionName()));
+        long count = coll.countDocuments();
+        getLogger().info(String.format("Successfully pulled %d documents from database (%s, %s)", count, adapter.getDatabaseName(), adapter.getCollectionName()));
     }
 
     public <T> void pushToDatabase(Class<T> type, boolean replaceOldCollectionObjects) {
@@ -76,7 +86,7 @@ public class CachingService extends Service {
         }
         List<Document> serializedObjects = getCacheList(type).stream().map(adapter::serialize).toList();
         coll.insertMany(serializedObjects);
-        getLogger().info(String.format("Successfully pushed to database (%s, %s)", adapter.getDatabaseName(), adapter.getCollectionName()));
+        getLogger().info(String.format("Successfully pushed %d objects to database (%s, %s)", serializedObjects.size(), adapter.getDatabaseName(), adapter.getCollectionName()));
     }
 
     public <T> void registerAdapter(CacherAdapter<T> adapter) {
