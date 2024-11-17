@@ -8,6 +8,7 @@ import io.github.rephrasing.services.impl.mongodb.MongoDatabaseService;
 import org.bson.Document;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -36,12 +37,24 @@ public class CachingService extends Service {
     public <T> void cache(T object, Class<T> clazz) {
         getCacheList(clazz).add(object);
     }
-    public <T> void execute(Class<T> clazz, Predicate<T> filter, Consumer<T> function) {
+    public <T> boolean executeIfFound(Class<T> clazz, Predicate<T> filter, Consumer<T> function) {
+        AtomicBoolean bool = new AtomicBoolean(false);
         List<T> modified = getCacheList(clazz).stream().filter(filter).map(obj -> {
             function.accept(obj);
+            bool.set(true);
             return obj;
         }).collect(Collectors.toList());
         this.cache.put(clazz, modified);
+        return bool.get();
+    }
+
+    public <T> void execute(Class<T> clazz, Predicate<T> filter, Consumer<T> function, T defaultValue) {
+        boolean success = executeIfFound(clazz, filter, function);
+        if (success) {
+            return;
+        }
+        function.accept(defaultValue);
+        getCacheList(clazz).add(defaultValue);
     }
 
     public <T> boolean remove(Class<T> clazz, Predicate<T> filter) {
